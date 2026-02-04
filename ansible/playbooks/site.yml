@@ -1,0 +1,6 @@
+- name: Bootstrap servidores igreja
+  hosts: all
+  become: true
+
+  roles:
+    - common

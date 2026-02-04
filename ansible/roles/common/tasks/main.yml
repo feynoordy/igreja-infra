@@ -1,0 +1,22 @@
+---
+# tasks file for ansible/roles/common
+- name: Atualizar pacotes do sistema
+  yum:
+    name: "*"
+    state: latest
+    update_cache: yes
+
+- name: Definir timezone para America/Sao_Paulo
+  timezone:
+    name: America/Sao_Paulo
+
+- name: Instalar pacotes básicos
+  yum:
+    name:
+      - vim
+      - curl
+      - wget
+      - git
+      - htop
+      - unzip
+    state: present
