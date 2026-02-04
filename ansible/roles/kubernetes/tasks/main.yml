@@ -1,0 +1,59 @@
+- name: Desabilitar swap (runtime)
+  command: swapoff -a
+  when: ansible_swaptotal_mb > 0
+
+- name: Remover swap do fstab
+  replace:
+    path: /etc/fstab
+    regexp: '^([^#].*swap.*)$'
+    replace: '# \1'
+
+- name: Configurar módulos do kernel para Kubernetes
+  copy:
+    dest: /etc/modules-load.d/k8s.conf
+    content: |
+      br_netfilter
+      overlay
+
+- name: Carregar módulos do kernel
+  command: modprobe {{ item }}
+  loop:
+    - br_netfilter
+    - overlay
+
+- name: Configurar sysctl para Kubernetes
+  copy:
+    dest: /etc/sysctl.d/k8s.conf
+    content: |
+      net.bridge.bridge-nf-call-iptables  = 1
+      net.bridge.bridge-nf-call-ip6tables = 1
+      net.ipv4.ip_forward                 = 1
+
+- name: Aplicar sysctl
+  command: sysctl --system
+
+- name: Adicionar repositório Kubernetes (pkgs.k8s.io)
+  copy:
+    dest: /etc/yum.repos.d/kubernetes.repo
+    content: |
+      [kubernetes]
+      name=Kubernetes
+      baseurl=https://pkgs.k8s.io/core:/stable:/v1.29/rpm/
+      enabled=1
+      gpgcheck=1
+      repo_gpgcheck=1
+      gpgkey=https://pkgs.k8s.io/core:/stable:/v1.29/rpm/repodata/repomd.xml.key
+
+- name: Instalar kubelet, kubeadm e kubectl
+  yum:
+    name:
+      - kubelet
+      - kubeadm
+      - kubectl
+    state: present
+
+- name: Habilitar kubelet
+  systemd:
+    name: kubelet
+    enabled: true
+    state: started
